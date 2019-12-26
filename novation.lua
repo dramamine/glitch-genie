@@ -63,6 +63,12 @@ function horizontal_distorter(location, old, new)
   -- print(string.format("done distorting %d %d", old, new))
 end
 
+function horizontal_distorter_v0(old, new, knob)
+  funspot_offset = 8 + (knob - 21)
+  location = VRAM.funspot + (bytes_to_fuck * funspot_offset)
+  horizontal_distorter(location, old, new)
+end
+
 function tileswapper()
   -- print(memory)
   for i=0x0000, 0x2000, 0x4 do
@@ -99,6 +105,15 @@ function crossswapper()
   end
 end
 
+function crossswapper_v0(old, new)
+  if old < 64 and new >= 64 then
+    print('swappin')
+    crossswapper()
+  elseif old >= 64 and new < 64 then
+    print('swappin')
+    crossswapper()
+  end
+end
 
 function distorter_v0(old, new)
   if (old == 0) then
@@ -187,27 +202,27 @@ end
 local knob_state = {
   [41] = {current = 0, new = 0, cb = palette_distorter},
   [42] = {current = 0, new = 0},
-  [43] = {current = 0, new = 0},
+  [43] = {current = 0, new = 0, cb = crossswapper_v0},
   [44] = {current = 0, new = 0},
   [45] = {current = 0, new = 0},
   [46] = {current = 0, new = 0},
   [47] = {current = 0, new = 0, cb = health_distorter},
   [48] = {current = 0, new = 0, cb = max_health_distorter},
-  [21] = {current = 0, new = 0},
-  [22] = {current = 0, new = 0},
-  [23] = {current = 0, new = 0},
-  [24] = {current = 0, new = 0},
-  [25] = {current = 0, new = 0},
-  [26] = {current = 0, new = 0},
-  [27] = {current = 0, new = 0},
-  [28] = {current = 0, new = 0},
+  [21] = {current = 0, new = 0, cb = horizontal_distorter_v0},
+  [22] = {current = 0, new = 0, cb = horizontal_distorter_v0},
+  [23] = {current = 0, new = 0, cb = horizontal_distorter_v0},
+  [24] = {current = 0, new = 0, cb = horizontal_distorter_v0},
+  [25] = {current = 0, new = 0, cb = horizontal_distorter_v0},
+  [26] = {current = 0, new = 0, cb = horizontal_distorter_v0},
+  [27] = {current = 0, new = 0, cb = horizontal_distorter_v0},
+  [28] = {current = 0, new = 0, cb = horizontal_distorter_v0},
 }
 
 function update_knob_state()
   for key,value in pairs(knob_state) do
     if value.current ~= value.new and value.cb ~= nil then
       -- print("found an update to do:", key, value.current, value.new)
-      knob_state[key].cb(value.current, value.new)
+      knob_state[key].cb(value.current, value.new, key)
       knob_state[key].current = value.new
     end
   end
