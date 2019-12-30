@@ -4,7 +4,8 @@
 
 - Run `EmuHawk.exe` and make sure the SNES core is set to `BSNES` - the `SNES9x` core does not support all the memory loactions we want to update.
 - Load the ROM file `Legend of Zelda, The - A Link to the Past (USA).src`
-- Choose "Lua console..." 
+  - Note that you can turn on Autoload (from the File -> Recent ROM menu) to save clicks
+- Tools -> Lua Console
 - Choose "Run script" and open `novation.lua` 
 
 ### MIDI controllers
