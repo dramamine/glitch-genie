@@ -12,6 +12,9 @@ local WRAM = {
   cgram_location_write = 0x2122,
   max_health = 0xF36C,
   health = 0xF36D,
+  music = 0x012C,
+  sfx1 = 0x012E,
+  sfx2 = 0x012F,
 }
 
 local VRAM = {
@@ -21,7 +24,7 @@ local VRAM = {
 }
 
 local w8 = memory.writebyte
-local w16 = memory.writeword
+local w16 = memory.write_u16_le
 local r8 = memory.readbyte
 local r16 = memory.readword
 -- @TODO
@@ -126,7 +129,7 @@ function distorter_v0(old, new)
     for i=0, 64, 1 do
       w8(VRAM.funspot+i, orig_data + new)
     end
-    
+
   end
   -- print(string.format("done distorting %d %d", old, new))
 end
@@ -199,10 +202,31 @@ function palette_distorter(old, new)
   end
 end
 
+
+last_music = 0x0
+function music_select_v0(old, new)
+  music = 0x0 + 1 + math.floor(new * 64 / 127)
+  if (music ~= last_music) then
+    print(string.format("updating music to: %X", music))
+    memory.usememorydomain("WRAM")
+    w16(WRAM.music, music)
+  end
+end
+
+last_sfx = 0x0
+function sfx1_select_v0(old, new)
+  sfx = 0x0 + 1 + math.floor(new * 0x3F / 127)
+  if (sfx ~= last_sfx) then
+    -- print(string.format("updating sfx to: %X", music))
+    memory.usememorydomain("WRAM")
+    w16(WRAM.sfx2, sfx)
+  end
+end
+
 local knob_state = {
   [41] = {current = 0, new = 0, cb = palette_distorter},
-  [42] = {current = 0, new = 0},
-  [43] = {current = 0, new = 0, cb = crossswapper_v0},
+  [42] = {current = 0, new = 0, cb = music_select_v0},
+  [43] = {current = 0, new = 0, cb = sfx1_select_v0},
   [44] = {current = 0, new = 0},
   [45] = {current = 0, new = 0},
   [46] = {current = 0, new = 0},
@@ -232,7 +256,7 @@ function update_knob_value(knob, value)
   -- if (knobs[knob] ~= nil) then
   --   knobs[knob].cb(knobs[knob].value, value)
   -- end
-  
+
 
   local funspot_offset = 0
   -- horizontally distort on each knob
@@ -247,9 +271,11 @@ function update_knob_value(knob, value)
   knobs_data[knob] = value
 end
 
+midi_id = 6
+
 if midi.getinportcount() > 0 then
 	-- table.foreach(midi.enumerateinports(), print)
-	print( 'Receiving on device: ', luamidi.getInPortName(0))
+	print( 'Receiving on device!: ', luamidi.getInPortName(midi_id))
 
 local seconds = os.clock()
 local framecounter = 0
@@ -260,8 +286,8 @@ local framecounter = 0
 
     -- recive midi command from input-port 0
 		-- command, note, velocity, delta-time-to-last-event (just ignore)
-    a,b,c,d = midi.getMessage(0)
-    
+    a,b,c,d = midi.getMessage(midi_id)
+
     while a ~= nil do
       -- look for an NoteON command
       if a == 152 and c == 127 then
@@ -275,10 +301,10 @@ local framecounter = 0
       elseif a == 136 and c == 0 then
         print('Note turned OFF:', a, b, c)
       elseif a == 184 then -- knob turns
-        -- 
+        --
         -- print("knob turn??", framecounter, a, b, c)
         knob_state[b].new = c
-      else 
+      else
         print('Some other command:', a, b, c, d)
       end
       a,b,c,d = midi.getMessage(0)
